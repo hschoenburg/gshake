@@ -7,6 +7,8 @@ import (
   "fmt"
   "encoding/json"
   "github.com/gomodule/redigo/redis"
+  //"reflect"
+  "strconv"
 )
 
 type NameNotif struct {
@@ -41,11 +43,59 @@ func Notifs(w http.ResponseWriter, r *http.Request) {
   }
 }
 
+func WeekHandler(db redis.Conn) http.HandlerFunc {
+  return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+    vars := mux.Vars(r)
+    week, week_err := strconv.Atoi(vars["week"])
+    if(week_err != nil) {
+      http.Error(w, week_err.Error(), 500)
+    }
+
+    // SMEMBERS name:list:week "all the names available this week" 
+
+
+    // 2 sets for every week
+    //notif_key := fmt.Sprintf("notifs:%v", 2) // lookup all notifs for given week
+    name_key := fmt.Sprintf("names:%v", week) // lookup all names for given week
+
+   names, names_err := redis.Strings(db.Do("SMEMBERS", name_key))
+    
+    if names_err != nil {
+      http.Error(w, names_err.Error(), 500)
+    }
+
+    w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+    w.WriteHeader(http.StatusOK)
+    if json_err := json.NewEncoder(w).Encode(names); json_err != nil {
+      http.Error(w, json_err.Error(), 500)
+    }
+  })
+}
+
+
 func NotifsHandler(db redis.Conn) http.HandlerFunc {
   return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-
     // get all notifs for a given email addr
     //vars := mux.Vars(r)
+
+    //Query(email)
+    // SCAN 0 MATCH "email" -- returns all notif hash keys for email
+    // foreach
+    // HGETALL key
+
+    //Query(week)
+    // SMEMBERS notifs:week "all the name:email pairs for that week" 
+    // SMEMBERS names:week "all the names available this week" 
+    // for each notif:list n
+    // HGETALL n
+
+    /*
+    _, notifs_err := db.Do("HGETALL", redis.Args{hash_key}.AddFlat(notif)...)
+    if notifs_err != nil {
+      http.Error(w, notifs_err.Error(), 500)
+    }
+    */
+
 
   })
 }
@@ -60,19 +110,17 @@ func NotifyHandler(db redis.Conn) http.HandlerFunc {
       Contact: r.FormValue("contact"),
       Notified: false,
       Verified: false,
-      Week: 1,
+      Week: 10,
     }
 
     //Save(week, clevertld, email)
     // 
+    // Weekly Indexes
     // SADD notif:list:45 "clevertld:email"
     // SADD name:list:45 "clevertld"
+    //
+    // Notif Hashes
     // HMSET clevertld:email "week 34, verified true, notified, false"
-
-
-    //Query(week)
-    // HGETALL notif:list:week "all the name:email pairs for that week" 
-    // HGETALL name:list:week "all the names available this week" 
 
 
     //Utilities to build
@@ -80,20 +128,34 @@ func NotifyHandler(db redis.Conn) http.HandlerFunc {
     // dictionary INDEXER
     // web GUI with "Names this week"
     
-    key := notif.Name + ":" + notif.Contact
 
+    // 1 hash for every notif
+    hash_key := notif.Name + ":" + notif.Contact // matches with name_key value
+    // 2 sets for every week
+    notif_key := fmt.Sprintf("notifs:%v", 2) // lookup all notifs for given week
+    name_key := fmt.Sprintf("names:%v", 2) // lookup all names for given week
 
-    //hash := fmt.Sprintf("name %v contact %v week %v verified %v notified %v", notif.Name, notif.Contact, 22, false, false)
-
-    _, err := db.Do("HMSET", redis.Args{key}.AddFlat(notif)...)
-    if err != nil {
-      http.Error(w, err.Error(), 500)
+    // save hash
+    _, hash_err := db.Do("HMSET", redis.Args{hash_key}.AddFlat(notif)...)
+    if hash_err != nil {
+      http.Error(w, hash_err.Error(), 500)
+    }
+    // save indexes
+    _, notif_err := db.Do("SADD", notif_key, hash_key)
+    if notif_err != nil {
+      http.Error(w, notif_err.Error(), 500)
+    }
+    _, name_err := db.Do("SADD", name_key, notif.Name)
+    if name_err != nil {
+      http.Error(w, name_err.Error(), 500)
     }
 
+
     w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-        w.WriteHeader(http.StatusOK)
-    if err = json.NewEncoder(w).Encode(notif); err != nil {
-      http.Error(w, err.Error(), 500)
+    w.WriteHeader(http.StatusOK)
+    if json_err := json.NewEncoder(w).Encode(notif); json_err != nil {
+      http.Error(w, json_err.Error(), 500)
+    }
   })
 }
 

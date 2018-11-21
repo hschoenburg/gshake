@@ -34,7 +34,10 @@ func main() {
 
   r.HandleFunc("/notify", handlers.NotifyHandler(conn))
 
-  r.HandleFunc("/notifs/{email}", handlers.Notifs).Methods("GET")
+  r.HandleFunc("/notifs/{email}", handlers.NotifsHandler(conn)).Methods("GET")
+
+  r.HandleFunc("/names/{week}", handlers.WeekHandler(conn)).Methods("GET")
+
 
 
 	srv := &http.Server{
