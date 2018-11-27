@@ -3,7 +3,9 @@ package handlers
 import (
   //"log"
   "net/http"
+	"errors"
   "github.com/gorilla/mux"
+  "gshake/hsd"
   "fmt"
   "encoding/json"
   "github.com/gomodule/redigo/redis"
@@ -30,17 +32,6 @@ func NameStatus (w http.ResponseWriter, r *http.Request) {
   // next step query hsd-rpc
   vars := mux.Vars(r)
   fmt.Fprintln(w, "GETTING STATUS ", vars["name"])
-}
-
-func Notifs(w http.ResponseWriter, r *http.Request) {
-  // query redis reply with all notifs for email
-  // for dev purposes onlu
-  vars := mux.Vars(r)
-  fmt.Println("Notifs for %v", vars["email"])
-  notifs := NameNotifs{}
-  if err := json.NewEncoder(w).Encode(notifs); err != nil {
-    panic(err)
-  }
 }
 
 func WeekHandler(db redis.Conn) http.HandlerFunc {
@@ -78,6 +69,20 @@ func NotifsHandler(db redis.Conn) http.HandlerFunc {
     // get all notifs for a given email addr
     //vars := mux.Vars(r)
 
+    /*
+    email := mux.Vars(r)["email"]
+    fmt.Println("Notifs for %v", email)
+
+    iter := 0
+    keys = []string{}
+    for {
+      arr, arr_err := redis.Values(db.Do("SCAN", iter, "MATCH", email))
+      if arr_err != nil {
+        http.Error(w, arr_err.Error(), 500)
+      }
+
+      iter, _ = redis.Int(arr[0], nil)
+
     //Query(email)
     // SCAN 0 MATCH "email" -- returns all notif hash keys for email
     // foreach
@@ -102,15 +107,21 @@ func NotifsHandler(db redis.Conn) http.HandlerFunc {
 
 func NotifyHandler(db redis.Conn) http.HandlerFunc {
   return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-    // next step save to redis
-    // save week in key as well TODO
+
+		Name := r.FormValue("name")
+		data :=  hsd.NameInfo(Name)
+		fmt.Printf("reserved: %v, week: %v, start: %v", data.Reserved, data.Week, data.Start)
+
+		if(data.Reserved) {
+			panic(errors.New("NAME RESERVED"))
+		}
 
     notif := NameNotif{
-      Name: r.FormValue("name"),
+      Name: Name,
       Contact: r.FormValue("contact"),
       Notified: false,
       Verified: false,
-      Week: 10,
+      Week: data.Start,
     }
 
     //Save(week, clevertld, email)
@@ -127,13 +138,11 @@ func NotifyHandler(db redis.Conn) http.HandlerFunc {
     // weekly notifier
     // dictionary INDEXER
     // web GUI with "Names this week"
-    
-
     // 1 hash for every notif
     hash_key := notif.Name + ":" + notif.Contact // matches with name_key value
     // 2 sets for every week
-    notif_key := fmt.Sprintf("notifs:%v", 2) // lookup all notifs for given week
-    name_key := fmt.Sprintf("names:%v", 2) // lookup all names for given week
+    notif_key := fmt.Sprintf("notifs:%v", data.Start) // lookup all notifs for given week
+    name_key := fmt.Sprintf("names:%v", data.Start) // lookup all names for given week
 
     // save hash
     _, hash_err := db.Do("HMSET", redis.Args{hash_key}.AddFlat(notif)...)
