@@ -15,31 +15,35 @@ import (
   "strconv"
 )
 
-func Hello(w http.ResponseWriter, r *http.Request) {
-  fmt.Fprintln(w, "Welcome to GShake")
-  // TODO serve React from here
+func Index() http.HandlerFunc {
+
+  return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
+    http.ServeFile(w, r, "./index.html")
+  })
 }
 
-func NameInfo (w http.ResponseWriter, r *http.Request) {
+func NameInfo () http.HandlerFunc {
+  return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
-  vars := mux.Vars(r)
-  data, hsd_err := hsd.NameInfo(vars["name"])
+    vars := mux.Vars(r)
+    data, hsd_err := hsd.NameInfo(vars["name"])
 
-  w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-  w.WriteHeader(http.StatusOK)
+    w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+    w.WriteHeader(http.StatusOK)
 
-  json_err := json.NewEncoder(w).Encode(data); 
-  
-  // idk do all the errs at once?
-  if json_err != nil {
-    http.Error(w, json_err.Error(), 500)
+    json_err := json.NewEncoder(w).Encode(data); 
+    
+    // idk do all the errs at once?
+    if json_err != nil {
+      http.Error(w, json_err.Error(), 500)
+      return
+    }
+    if hsd_err != nil {
+      http.Error(w, hsd_err.Error(), 500)
     return
-  }
-  if hsd_err != nil {
-    http.Error(w, hsd_err.Error(), 500)
-    return
-  }
-
+    }
+  })
 }
 
 func WeekHandler(db redis.Conn) http.HandlerFunc {

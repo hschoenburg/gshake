@@ -36,14 +36,18 @@ func main() {
 
 
 	r := mux.NewRouter()
-	r.HandleFunc("/", handlers.Hello)
-  r.HandleFunc("/info/{name}", handlers.NameInfo).Methods("GET")
+
+  r.HandleFunc("/info/{name}", handlers.NameInfo()).Methods("GET")
 
   r.HandleFunc("/notify", handlers.NotifyHandler(conn)).Methods("POST")
 
   r.HandleFunc("/notifs/{contact}", handlers.NotifsHandler(conn)).Methods("GET")
 
   r.HandleFunc("/names/{week}", handlers.WeekHandler(conn)).Methods("GET")
+  
+  r.PathPrefix("/dist/").Handler(http.StripPrefix("/dist/", http.FileServer(http.Dir("dist"))))
+
+  r.PathPrefix("/").HandlerFunc(handlers.Index())
 
 
 
