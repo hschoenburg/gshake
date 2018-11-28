@@ -15,9 +15,15 @@ import (
   "time"
 )
 
+// ToDO
+//Utilities to build
+// weekly notifier
+// dictionary INDEXER
+// web GUI with "Names this week"
+// Connect to remote HSD node
+
 
 func main() {
-	fmt.Println("go go go")
 	var wait time.Duration
   flag.DurationVar(&wait, "graceful-timeout", time.Second * 15, "the duration for which the server gracefully wait for existing connections to finish - e.g. 15s or 1m")
   flag.Parse()
@@ -31,11 +37,11 @@ func main() {
 
 	r := mux.NewRouter()
 	r.HandleFunc("/", handlers.Hello)
-  r.HandleFunc("/status/{name}", handlers.NameStatus)
+  r.HandleFunc("/info/{name}", handlers.NameInfo).Methods("GET")
 
-  r.HandleFunc("/notify", handlers.NotifyHandler(conn))
+  r.HandleFunc("/notify", handlers.NotifyHandler(conn)).Methods("POST")
 
-  r.HandleFunc("/notifs/{email}", handlers.NotifsHandler(conn)).Methods("GET")
+  r.HandleFunc("/notifs/{contact}", handlers.NotifsHandler(conn)).Methods("GET")
 
   r.HandleFunc("/names/{week}", handlers.WeekHandler(conn)).Methods("GET")
 
@@ -52,6 +58,7 @@ func main() {
 
 	// Run our server in a goroutine so that it doesn't block.
     go func() {
+	      fmt.Println("Server Up. Listening on 8080")
         if err := srv.ListenAndServe(); err != nil {
             log.Println(err)
         }
