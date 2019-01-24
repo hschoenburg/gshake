@@ -7,27 +7,11 @@ import (
   "fmt"
   "net/http"
   "io/ioutil"
+  . "gshake/types"
 )
 
-const HSD_URL="http://127.0.0.1:13037"
-  
-type NameInfoData struct {
-	Result struct {
-	  Info struct {} 		`json:"info"`
-		Start StartData   `json:"start"`
-  }
-  Error struct {
-    Message string  `json:"message"`
-    Code int        `json:"code"`
-  }                 `json:"error"`
-}
-
-type StartData struct {
-		Reserved bool `json:"reserved"`
-		Week     int  `json:"week"`
-		Start    int  `json:"start"`
-}
-	
+//const HSD_URL="x:gobabygo@192.241.237.167:13037"
+const HSD_URL="http://x:gobabygo@192.241.237.167:13037"
 
 
 func NameInfo(name string) (NameInfoData, error) {
@@ -37,26 +21,30 @@ func NameInfo(name string) (NameInfoData, error) {
     "params": []string{name},
   }
 
+  empty := NameInfoData{}
+
   args, err := json.Marshal(req)
+  if(err != nil) { return empty, err }
+
 
   resp, err := http.Post(HSD_URL, "application/json", bytes.NewBuffer(args))
+  if(err != nil) { return empty, err }
 
   defer resp.Body.Close()
 
   body, err := ioutil.ReadAll(resp.Body)
+  if(err != nil) { return empty, err }
 
   fmt.Printf("HSD: %v\n", string(body))
 
 	data := NameInfoData{}
 	err = json.Unmarshal(body, &data)
+  if(err != nil) { return empty, err }
 
   if(data.Error.Message != "") {
-    return NameInfoData{}, errors.New(data.Error.Message)
+    return empty, errors.New(data.Error.Message)
   }
 
-  if err != nil {
-    return NameInfoData{}, fmt.Errorf("NameInfo Error: %v", err)
-  }
 
   return data, nil
 }

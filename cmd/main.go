@@ -1,17 +1,19 @@
 package main
 
 import (
-  "gshake/handlers"
-  //"html"
   "context"
+  //"html"
   "flag"
   "fmt"
   "github.com/gorilla/mux"
-  "net/http"
-  "log"
-  "os"
 	"github.com/gomodule/redigo/redis"
+  "gshake/server"
+  "gshake/api"
+  "log"
+  "net/http"
+  "os"
   "os/signal"
+  //"syscall"
   "time"
 )
 
@@ -37,17 +39,22 @@ func main() {
 
 	r := mux.NewRouter()
 
-  r.HandleFunc("/info/{name}", handlers.NameInfo()).Methods("GET")
 
-  r.HandleFunc("/notify", handlers.NotifyHandler(conn)).Methods("POST")
+  r.HandleFunc("/", server.IndexHandler("assets"))
 
-  r.HandleFunc("/notifs/{contact}", handlers.NotifsHandler(conn)).Methods("GET")
+  r.HandleFunc("/info/{name}", api.NameInfo()).Methods("GET")
 
-  r.HandleFunc("/names/{week}", handlers.WeekHandler(conn)).Methods("GET")
+  r.HandleFunc("/notify", api.NotifyHandler(conn)).Methods("POST")
+
+  r.HandleFunc("/notifs/{contact}", api.NotifsHandler(conn)).Methods("GET")
+
+  r.HandleFunc("/names/{week}", api.WeekHandler(conn)).Methods("GET")
+
+  r.HandleFunc("/verify/{contact}", api.Verify(conn)).Methods("GET")
+
+  r.HandleFunc("/unsubscribe/{contact}", api.Unsubscribe(conn)).Methods("GET")
   
   r.PathPrefix("/dist/").Handler(http.StripPrefix("/dist/", http.FileServer(http.Dir("dist"))))
-
-  r.PathPrefix("/").HandlerFunc(handlers.Index())
 
 
 

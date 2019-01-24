@@ -1,4 +1,4 @@
-package handlers
+package api
 
 import (
   //"log"
@@ -15,19 +15,52 @@ import (
   "strconv"
 )
 
-func Index() http.HandlerFunc {
 
+func Verify (db redis.Conn) http.HandlerFunc {
   return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+    vars := mux.Vars(r)
+    contact := vars["contact"]
 
-    http.ServeFile(w, r, "./index.html")
+    fmt.Printf("Verified %v", contact)
+    http.Redirect(w, r, "/", 301)
   })
 }
+
+func Unsubscribe (db redis.Conn) http.HandlerFunc {
+  return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+    vars := mux.Vars(r)
+
+    unsub_key := "unsubs"
+    contact := vars["contact"]
+
+
+json.NewEncoder(w).Encode("successfully unsubscribed")
+
+    // save unsub
+    _, unsub_err := db.Do("SADD", unsub_key, contact)
+    if unsub_err != nil {
+      http.Error(w, unsub_err.Error(), 500)
+      return
+    }
+
+
+    w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+    w.WriteHeader(http.StatusOK)
+    json.NewEncoder(w).Encode("successfully unsubscribed")
+  })
+}
+
 
 func NameInfo () http.HandlerFunc {
   return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
     vars := mux.Vars(r)
     data, hsd_err := hsd.NameInfo(vars["name"])
+    
+    if(hsd_err != nil) {
+      http.Error(w, hsd_err.Error(), 500)
+      return
+    }
 
     w.Header().Set("Content-Type", "application/json; charset=UTF-8")
     w.WriteHeader(http.StatusOK)
@@ -116,7 +149,6 @@ func NotifyHandler(db redis.Conn) http.HandlerFunc {
       Name: Name,
       Contact: r.FormValue("contact"),
       Notified: false,
-      Verified: false,
       Week: info.Week,
     }
 

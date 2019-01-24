@@ -5,6 +5,29 @@ type NameNotif struct {
   Contact string  `json:"contact"`
   Week int      `json:"week"`
   Notified bool `json:"notified"`
-  Verified bool `json:"verified"`
 }
 
+type Contact struct {
+  Email string `json:"email"`
+  Phone string `json:"phone"`
+  Subscribed bool `json:subscribed`
+  Verified bool `json:verified`
+}
+
+  
+type NameInfoData struct {
+	Result struct {
+	  Info struct {} 		`json:"info"`
+		Start StartData   `json:"start"`
+  }
+  Error struct {
+    Message string  `json:"message"`
+    Code int        `json:"code"`
+  }                 `json:"error"`
+}
+
+type StartData struct {
+		Reserved bool `json:"reserved"`
+		Week     int  `json:"week"`
+		Start    int  `json:"start"`
+}
