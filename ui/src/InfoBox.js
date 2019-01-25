@@ -4,7 +4,7 @@ import NotifyForm from './NotifyForm'
 
 class InfoBox extends Component {
 
-  state = { info: {}}
+  state = { info: {}, error: false }
 
   render() {
     return (
@@ -18,32 +18,46 @@ class InfoBox extends Component {
 
           <input type = 'submit' />
         </form>
-        <SearchResults {...this.state.info}/>
+        <SearchResults {...this.state}/>
       </div>
     );
   }
 
   getInfo = async (e) => {
-      e.preventDefault()
-      const name = this.refs.name.value
-      let req = await fetch(process.env.REACT_APP_GSHAKE_HOST + "/info/" + name)
-      this.refs.name.value = ''
-      let info = await req.json()
-      this.setState({info: info})
+    e.preventDefault()
+    const name = this.refs.name.value
+    if(name.length === 0) { return }
+    let req = await fetch(process.env.REACT_APP_GSHAKE_HOST + "/info/" + name)
+    this.refs.name.value = ''
+    let res = await req.json()
+    if(req.ok) {
+      this.setState({info: res, error: false})
+    } else {
+      this.setState({info:{} , error: {message: res, name: name}})
+    }
   }
 }
 
 const SearchResults = (props) => {
-  if(props.Name) {
+
+  if(props.error.message) {
+    return (
+      <div>
+          <p>Sorry an Error Occured. Please try again</p>
+          <p>{props.name} Error:  {props.error.message}</p>
+      </div>
+    ) 
+  } else if(props.info.Name) {
+    let info = props.info
     return (
       <div>
         <ul className='search-results'>
-          <li>Name: {props.Name}</li>
-          <li>Reserved: {String(props.Result.start.reserved)}</li>
-          <li>Week Available: {props.Result.start.week}</li>
-          <li>Block Height: {props.Result.start.start}</li>
+          <li>Name: {info.Name}</li>
+          <li>Reserved: {String(info.Result.start.reserved)}</li>
+          <li>Week Available: {info.Result.start.week}</li>
+          <li>Block Height: {info.Result.start.start}</li>
         </ul>
-        <NotifyForm name={props.Name} />
+        <NotifyForm name={info.Name} />
       </div>
     )
   } else {

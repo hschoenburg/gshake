@@ -54,28 +54,21 @@ json.NewEncoder(w).Encode("successfully unsubscribed")
 func NameInfo () http.HandlerFunc {
   return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
+    w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+
     vars := mux.Vars(r)
     data, hsd_err := hsd.NameInfo(vars["name"])
     
     if(hsd_err != nil) {
-      http.Error(w, hsd_err.Error(), 500)
+      w.WriteHeader(http.StatusInternalServerError)
+      json.NewEncoder(w).Encode(hsd_err.Error())
       return
     }
 
-    w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-    w.WriteHeader(http.StatusOK)
-
-    json_err := json.NewEncoder(w).Encode(data); 
-    
-    // idk do all the errs at once?
-    if json_err != nil {
+    if json_err := json.NewEncoder(w).Encode(data); json_err != nil {
       http.Error(w, json_err.Error(), 500)
-      return
     }
-    if hsd_err != nil {
-      http.Error(w, hsd_err.Error(), 500)
-    return
-    }
+
   })
 }
 
@@ -132,6 +125,19 @@ func NotifyHandler(db redis.Conn) http.HandlerFunc {
 
 		Name := r.FormValue("name")
 		data, hsd_err :=  hsd.NameInfo(Name)
+
+    // hsd node has returned an error Message
+    // send as OK for UI to show why it falied
+    if data.Error.Message != "" {
+      w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+      w.WriteHeader(http.StatusOK)
+      if json_err := json.NewEncoder(w).Encode(data); json_err != nil {
+        http.Error(w, json_err.Error(), 500)
+      }
+      return
+    }
+
+
     info := data.Result.Start
 
     fmt.Printf("error: %v reserved: %v, week: %v, start: %v\n", data.Error.Message, info.Reserved, info.Week, info.Start)
