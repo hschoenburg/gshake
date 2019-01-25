@@ -9,7 +9,7 @@ class App extends Component {
         <header className="App-header">
           <img src={logo} className="App-logo" alt="logo" />
           <p>
-            Edit <code>src/App.js</code> and save to reload.
+            Really? YES  NO O{process.env.REACT_APP_HANS || "NO env vars here"}<code>src/App.js</code> and save to reload.
           </p>
           <a
             className="App-link"

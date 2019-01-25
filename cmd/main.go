@@ -36,11 +36,17 @@ func main() {
   conn := pool.Get()
   defer conn.Close()
 
+  var dir string
+  flag.StringVar(&dir, "dir", ".", "the directory to serve files from. Defaults to current dir")
+  flag.Parse()
+
+
 
 	r := mux.NewRouter()
 
+	r.NotFoundHandler = http.HandlerFunc(server.NotFoundHandler)
 
-  r.HandleFunc("/", server.IndexHandler("assets"))
+  r.HandleFunc("/", server.IndexHandler())
 
   r.HandleFunc("/info/{name}", api.NameInfo()).Methods("GET")
 
@@ -53,11 +59,12 @@ func main() {
   r.HandleFunc("/verify/{contact}", api.Verify(conn)).Methods("GET")
 
   r.HandleFunc("/unsubscribe/{contact}", api.Unsubscribe(conn)).Methods("GET")
+
+  const STATIC_DIR="/ui/build/"
+
+  r.PathPrefix(STATIC_DIR).Handler(http.StripPrefix(STATIC_DIR, http.FileServer(http.Dir("." + STATIC_DIR))))
+
   
-  r.PathPrefix("/dist/").Handler(http.StripPrefix("/dist/", http.FileServer(http.Dir("dist"))))
-
-
-
 	srv := &http.Server{
 			Addr:         "0.0.0.0:8080",
 			// Good practice to set timeouts to avoid Slowloris attacks.
