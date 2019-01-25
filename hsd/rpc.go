@@ -35,10 +35,12 @@ func NameInfo(name string) (NameInfoData, error) {
   body, err := ioutil.ReadAll(resp.Body)
   if(err != nil) { return empty, err }
 
-  fmt.Printf("HSD: %v\n", string(body))
 
 	data := NameInfoData{}
+  data.Name = name
 	err = json.Unmarshal(body, &data)
+
+  fmt.Printf("HSD: %+v\n", data)
   if(err != nil) { return empty, err }
 
   if(data.Error.Message != "") {

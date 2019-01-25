@@ -16,6 +16,7 @@ type Contact struct {
 
   
 type NameInfoData struct {
+  Name string
 	Result struct {
 	  Info struct {} 		`json:"info"`
 		Start StartData   `json:"start"`

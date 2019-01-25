@@ -1,6 +1,7 @@
 import React, { Component } from 'react';
-import logo from './logo.svg';
+import logo from './hns-logo.svg';
 import './App.css';
+import InfoBox from './InfoBox';
 
 class App extends Component {
   render() {
@@ -8,17 +9,9 @@ class App extends Component {
       <div className="App">
         <header className="App-header">
           <img src={logo} className="App-logo" alt="logo" />
-          <p>
-            Really? YES  NO O{process.env.REACT_APP_HANS || "NO env vars here"}<code>src/App.js</code> and save to reload.
-          </p>
-          <a
-            className="App-link"
-            href="https://reactjs.org"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Learn React
-          </a>
+          <h2>HNSNNS</h2>
+          <h4>Handshake Name Notifier Service</h4> 
+          <InfoBox />
         </header>
       </div>
     );
