@@ -11,10 +11,21 @@ import (
 )
 
 //const HSD_URL="x:gobabygo@192.241.237.167:13037"
-const HSD_URL="http://x:gobabygo@192.241.237.167:13037"
+const HSD_URL="http://x:gobabygo@localhost:14037"
 
 
-func NameInfo(name string) (NameInfoData, error) {
+type RpcClient struct {
+  NodeUrl string
+}
+
+func NewRpcClient() RpcClient {
+  client := RpcClient {}  
+  client.NodeUrl = HSD_URL
+  return client
+}
+
+
+func (r RpcClient) NameInfo(name string) (NameInfoData, error) {
 
   req := map[string]interface{}{
     "method": "getnameinfo",
@@ -46,7 +57,5 @@ func NameInfo(name string) (NameInfoData, error) {
   if(data.Error.Message != "") {
     return empty, errors.New(data.Error.Message)
   }
-
-
   return data, nil
 }

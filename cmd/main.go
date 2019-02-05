@@ -1,20 +1,18 @@
 package main
 
 import (
-  "context"
-  //"html"
-  "flag"
-  "fmt"
-  "github.com/gorilla/mux"
+	"context"
+	//"html"
+	"flag"
+	"fmt"
 	"github.com/gomodule/redigo/redis"
-  "gshake/server"
-  "gshake/api"
-  "log"
-  "net/http"
-  "os"
-  "os/signal"
-  //"syscall"
-  "time"
+	"gshake/router"
+	"log"
+	"net/http"
+	"os"
+	"os/signal"
+	//"syscall"
+	"time"
 )
 
 // ToDO
@@ -24,85 +22,59 @@ import (
 // web GUI with "Names this week"
 // Connect to remote HSD node
 
-
 func main() {
 	var wait time.Duration
-  flag.DurationVar(&wait, "graceful-timeout", time.Second * 15, "the duration for which the server gracefully wait for existing connections to finish - e.g. 15s or 1m")
-  flag.Parse()
+	flag.DurationVar(&wait, "graceful-timeout", time.Second*15, "the duration for which the server gracefully wait for existing connections to finish - e.g. 15s or 1m")
+	flag.Parse()
 
-  // Create Pool of Redis Connections
+	// Create Pool of Redis Connections
 
-  pool := newPool()
-  conn := pool.Get()
-  defer conn.Close()
+	pool := newPool()
+	conn := pool.Get()
+	defer conn.Close()
 
-  var dir string
-  flag.StringVar(&dir, "dir", ".", "the directory to serve files from. Defaults to current dir")
-  flag.Parse()
+	var dir string
+	flag.StringVar(&dir, "dir", ".", "the directory to serve files from. Defaults to current dir")
+	flag.Parse()
 
-
-
-	r := mux.NewRouter()
-
-	r.NotFoundHandler = http.HandlerFunc(server.NotFoundHandler)
-
-  r.HandleFunc("/", server.IndexHandler())
-
-  r.HandleFunc("/info/{name}", api.NameInfo()).Methods("GET")
-
-  r.HandleFunc("/notify", api.NotifyHandler(conn)).Methods("POST")
-
-  r.HandleFunc("/notifs/{contact}", api.NotifsHandler(conn)).Methods("GET")
-
-  r.HandleFunc("/names/{week}", api.WeekHandler(conn)).Methods("GET")
-
-  r.HandleFunc("/verify/{contact}", api.Verify(conn)).Methods("GET")
-
-  r.HandleFunc("/unsubscribe/{contact}", api.Unsubscribe(conn)).Methods("GET")
-
-  const STATIC_DIR="/ui/build/"
-
-  r.PathPrefix(STATIC_DIR).Handler(http.StripPrefix(STATIC_DIR, http.FileServer(http.Dir("." + STATIC_DIR))))
-
-  
+  r := router.BuildRouter(conn)
 	srv := &http.Server{
-			Addr:         "0.0.0.0:8080",
-			// Good practice to set timeouts to avoid Slowloris attacks.
-			WriteTimeout: time.Second * 15,
-			ReadTimeout:  time.Second * 15,
-			IdleTimeout:  time.Second * 60,
-			Handler: r, // Pass our instance of gorilla/mux in.
+		Addr: "0.0.0.0:8080",
+		// Good practice to set timeouts to avoid Slowloris attacks.
+		WriteTimeout: time.Second * 15,
+		ReadTimeout:  time.Second * 15,
+		IdleTimeout:  time.Second * 60,
+		Handler:      r, // Pass our instance of gorilla/mux in.
 	}
 
 	// Run our server in a goroutine so that it doesn't block.
-    go func() {
-	      fmt.Println("Server Up. Listening on 8080")
-        if err := srv.ListenAndServe(); err != nil {
-            log.Println(err)
-        }
-    }()
+	go func() {
+		fmt.Println("Server Up. Listening on 8080")
+		if err := srv.ListenAndServe(); err != nil {
+			log.Println(err)
+		}
+	}()
 
-    c := make(chan os.Signal, 1)
-    // We'll accept graceful shutdowns when quit via SIGINT (Ctrl+C)
-    // SIGKILL, SIGQUIT or SIGTERM (Ctrl+/) will not be caught.
-    signal.Notify(c, os.Interrupt)
+	c := make(chan os.Signal, 1)
+	// We'll accept graceful shutdowns when quit via SIGINT (Ctrl+C)
+	// SIGKILL, SIGQUIT or SIGTERM (Ctrl+/) will not be caught.
+	signal.Notify(c, os.Interrupt)
 
-    // Block until we receive our signal.
-    <-c
+	// Block until we receive our signal.
+	<-c
 
-    // Create a deadline to wait for.
-    ctx, cancel := context.WithTimeout(context.Background(), wait)
-    defer cancel()
-    // Doesn't block if no connections, but will otherwise wait
-    // until the timeout deadline.
-    srv.Shutdown(ctx)
-    // Optionally, you could run srv.Shutdown in a goroutine and block on
-    // <-ctx.Done() if your application should wait for other services
-    // to finalize based on context cancellation.
-    log.Println("shutting down")
-    os.Exit(0)
+	// Create a deadline to wait for.
+	ctx, cancel := context.WithTimeout(context.Background(), wait)
+	defer cancel()
+	// Doesn't block if no connections, but will otherwise wait
+	// until the timeout deadline.
+	srv.Shutdown(ctx)
+	// Optionally, you could run srv.Shutdown in a goroutine and block on
+	// <-ctx.Done() if your application should wait for other services
+	// to finalize based on context cancellation.
+	log.Println("shutting down")
+	os.Exit(0)
 }
-
 
 func newPool() *redis.Pool {
 	return &redis.Pool{
@@ -121,6 +93,3 @@ func newPool() *redis.Pool {
 		},
 	}
 }
-
-
-

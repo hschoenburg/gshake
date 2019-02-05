@@ -25,19 +25,22 @@ class NotifyForm extends Component {
 
   async Notify (e) {
     e.preventDefault()
-    const url = process.env.REACT_APP_GSHAKE_HOST + "/notify"
-    const postOpts = {
-      method: 'POST',
-      headers: { "ContentType": "application/json" },
-      body: JSON.stringify({contact: this.refs.email.value, name: this.props.name })
-    }
-    console.log(postOpts)
+    try {
+      const url = process.env.REACT_APP_GSHAKE_HOST + "/notify"
+      const postOpts = {
+        method: 'POST',
+        headers: { "ContentType": "application/json" },
+        body: JSON.stringify({contact: this.refs.email.value, name: this.props.name })
+      }
+      console.log(postOpts)
 
-    let req = await fetch(url, postOpts)
-    
-    let res = await req.json()
-    console.log(res)
-    //this.setState({info: info})
+      let req = await fetch(url, postOpts)
+      let res = await req.json()
+      console.log(res)
+      //this.setState({info: info})
+    } catch (err) {
+      console.log('NoifyForm: Notify Error: ' + err)
+    }
   }
 }
 
